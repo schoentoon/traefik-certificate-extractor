@@ -88,30 +88,22 @@ def restartContainerWithDomains(domains):
 def createCerts(args):
     # Read JSON file
     data = json.loads(open(args.certificate).read())
-
-    # Determine ACME version
-    acme_version = 2 if 'acme-v02' in data['Account']['Registration']['uri'] else 1
+    data = data['default']
 
     # Find certificates
-    if acme_version == 1:
-        certs = data['DomainsCertificate']['Certs']
-    elif acme_version == 2:
-        certs = data['Certificates']
+    certs = data['Certificates']
 
     # Loop over all certificates
     names = []
 
     for c in certs:
-        if acme_version == 1:
-            name = c['Certificate']['Domain']
-            privatekey = c['Certificate']['PrivateKey']
-            fullchain = c['Certificate']['Certificate']
-            sans = c['Domains']['SANs']
-        elif acme_version == 2:
-            name = c['Domain']['Main']
-            privatekey = c['Key']
-            fullchain = c['Certificate']
-            sans = c['Domain']['SANs']
+        name = c['domain']['main']
+        privatekey = c['key']
+        fullchain = c['certificate']
+        if 'sans' in c['domain']:
+            sans = c['domain']['sans']
+        else:
+            sans = []
 
         if (args.include and name not in args.include) or (args.exclude and name in args.exclude):
             continue
@@ -231,6 +223,7 @@ if __name__ == "__main__":
 
     # Create event handler and observer
     event_handler = Handler(args)
+    event_handler.doTheWork()
     observer = Observer()
 
     # Register the directory to watch
